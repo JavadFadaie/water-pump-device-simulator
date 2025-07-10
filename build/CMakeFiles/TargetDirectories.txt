@@ -1,0 +1,3 @@
+/home/javad/Desktop/internal project/SMCS-AWP/build/CMakeFiles/pump_simulation.dir
+/home/javad/Desktop/internal project/SMCS-AWP/build/CMakeFiles/edit_cache.dir
+/home/javad/Desktop/internal project/SMCS-AWP/build/CMakeFiles/rebuild_cache.dir
