@@ -1,0 +1,18 @@
+project definition : https://chatgpt.com/c/673c9f58-138c-800d-9397-035fa9d4402c
+
+
+what we need to do for the simulator fist
+
+it receve some driver about the pump that we want to simualte
+and it should specifies some internal values 
+
+
+to write the drvier forthe simulation, we need to define first the function which store the diffrent devices and its charachteristics 
+
+
+
+1. I have to be able to have two drvier and make the 
+2.  diriver simulation as abstract and
+3. and write the cmake that contain all the driver and put it in the signle 
+4. design the web UI and try to controll all the functionalyitiy inside the web UI
+5. find a way to to write the register into some register and try to have the slcore that could read this register at the same time
