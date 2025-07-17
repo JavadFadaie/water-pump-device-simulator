@@ -7,6 +7,7 @@
 #include <chrono>
 #include <algorithm>
 #include <memory>
+#include <atomic>
 #include "simulation_variable.hpp" // Include the header for device_properties and pumpProto
 
 class driver_base{
@@ -15,6 +16,11 @@ class driver_base{
 	
 	driver_base()
 	: selected_device(std::make_unique<device_properties>()) {}
+
+	virtual ~driver_base() 
+	{
+		stop_simulation();
+    }
 	
 	virtual void set_devices() = 0; // Make pure virtual
 
@@ -47,7 +53,7 @@ class driver_base{
 		}
 	}
 
-	void update_driver_value()
+	void simulate_values()
 	{
 		pump.pump_on = true;
 		if(pump.pump_on)
@@ -60,15 +66,60 @@ class driver_base{
 		}	
 	}
 
-	virtual void simualte_driver_values()
+	void simulate_driver_values()
 	{
-		while (true) 
+		set_simulation_status(true);
+		while (running) 
 		{
-        	update_driver_value();  								// Simulate new flow_rate
-        	std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait 10 seconds
-			print_update_driver_values();
+        	simulate_values();  								// Simulate new flow_rate
+        	std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait 1 seconds
+			//print_update_driver_values();
 		}
 	}
+
+	void start_simulation() 
+	{
+		//The std::thread constructor creates a new thread and immediately starts 
+		//executing driver_base::simulate_driver_values on the current object (this).
+        if (!running) 
+		{
+            simulation_thread = std::thread(&driver_base::simulate_driver_values, this);
+        }
+    }
+
+	void stop_simulation() 
+	{
+		set_simulation_status(false);
+		if (simulation_thread.joinable()) 
+		{
+            simulation_thread.join();
+        }
+    }
+
+	void set_simulation_status(bool status)
+	{
+		running = status;
+	}
+
+	virtual void generate_simulation()
+    {
+        start_simulation();
+	    auto start_time = std::chrono::steady_clock::now();
+        auto duration = std::chrono::seconds(simulation_duration);
+     
+        while(std::chrono::steady_clock::now() - start_time < duration)
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            update_driver_value(pump);
+        }
+       
+        stop_simulation();
+    }
+
+
+
+	virtual void update_driver_value(pumpProto & pump) = 0;
+
 
 	void print_update_driver_values() 
 	{
@@ -84,7 +135,10 @@ class driver_base{
 	
 	std::vector<device_properties> device_list;
 	pumpProto pump; 
+	std::atomic<bool> running; // Control simulation loop
 	std::unique_ptr<device_properties>  selected_device;
+	std::thread simulation_thread; // Thread for simulation
+	int simulation_duration;
 
 };
 

@@ -1,6 +1,6 @@
 project definition : https://chatgpt.com/c/673c9f58-138c-800d-9397-035fa9d4402c
 
-
+project simulation in grok : https://grok.com/chat/772c7d0f-fcdf-4eaa-ba09-17750d775b66
 what we need to do for the simulator fist
 
 it receve some driver about the pump that we want to simualte

@@ -19,6 +19,23 @@ class grundfos_pump: public driver_base{
 					  };
     }
 
+    void driver_simulation(int duration_seconds)
+    {
+        simulation_duration = duration_seconds;
+        generate_simulation();
+    }
+
+    void update_driver_value(pumpProto & grundfos_value) override
+    {
+        std::cout << "[Flow Rate   	 Update] " << grundfos_value.flow_rate << " L/min" << std::endl;
+           
+    }
+
+
+
+    private : 
+
+
 
 };
 
