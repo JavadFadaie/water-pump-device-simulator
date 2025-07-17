@@ -8,11 +8,36 @@ and it should specifies some internal values
 
 
 to write the drvier forthe simulation, we need to define first the function which store the diffrent devices and its charachteristics 
+________________________________________
+sitation update : 17.07.2025
+
+currently we have driver the could class the base class and start the simualtion 
+there is two staff remaiing that first we should be able to write the simualtion variable into some register
+
+and two we have to come up to have list that driver could have id and we could be able to class the functionality from the web UI
 
 
 
-1. I have to be able to have two drvier and make the 
-2.  diriver simulation as abstract and
-3. and write the cmake that contain all the driver and put it in the signle 
+as next step we should write the scond driver, and then adapt the main part that could handel as many driver as we add
+the abstraction that could call as many driver as possible with main and use the base functionaliy and handover this abstraction 
+into the one web UI thing
+
+
+need to add the manufactuere
+_____________________________________________________
+
+
+
+
+1. I have to be able to have two drvier and make the------done
+2.  diriver simulation as abstract and  -----done  
+3. and write the cmake that contain all the driver and put it in the signle -----done
+
+ 
+
 4. design the web UI and try to controll all the functionalyitiy inside the web UI
 5. find a way to to write the register into some register and try to have the slcore that could read this register at the same time
+
+
+
+
