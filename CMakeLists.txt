@@ -12,13 +12,22 @@ set(SOURCES
 
 # Specify the header files (optional, for IDEs to recognize them)
 set(HEADERS
-    simulation_variable.hpp
-    driver_base.hpp
-    grundfos_pump.hpp
+    include/simulation_variable.hpp
+    include/driver_base.hpp
+    simulation_kernel/grundfos_pump.hpp
+    simulation_kernel/wilo_pump.hpp
 )
+
 
 # Create the executable
 add_executable(pump_simulation ${SOURCES} ${HEADERS})
+
+
+# Add include directories
+target_include_directories(pump_simulation PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/simulation_kernel
+)
 
 # Find and link the threading library
 set(THREADS_PREFER_PTHREAD_FLAG ON)

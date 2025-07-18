@@ -1,5 +1,4 @@
 #include <iostream>
-#include "simulation_variable.hpp"
 #include "grundfos_pump.hpp"
 #include <string>
 #include <thread>
