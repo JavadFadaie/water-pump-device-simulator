@@ -5,10 +5,14 @@
 
 class wilo_pump: public driver_base{
 
+    private : 
+
+    pumpProto wilo_simulation_pump; 
+
     public: 
 
     wilo_pump()
-    :driver_base()
+    :driver_base(wilo_simulation_pump)
     {}
     
     void set_devices() override
@@ -19,23 +23,21 @@ class wilo_pump: public driver_base{
 					  };
     }
 
-    void driver_simulation(int duration_seconds)
+    void set_simulation_duration(int duration_seconds)
     {
         simulation_duration = duration_seconds;
+    }
+
+    void driver_simulation()
+    {
         generate_simulation();
     }
 
-    void update_driver_value(pumpProto & grundfos_value) override
+    void update_driver_value() override
     {
-        std::cout << "[Flow Rate   	 Update] " << grundfos_value.flow_rate << " L/min" << std::endl;
+        std::cout << "[Flow Rate   	 Update] " << wilo_simulation_pump.flow_rate << " L/min" << std::endl;
            
     }
-
-
-
-    private : 
-
-
 
 };
 

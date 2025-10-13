@@ -21,7 +21,7 @@ class driver_registery{
     
         int driverId;
         std::string driver_name;
-        std::string manufacturer_name;
+        std::string manufacturer_name; 
 };
 
 #endif
