@@ -12,8 +12,7 @@
 
 class driver_base{
 
-	public : 
-	
+  public: 
 	driver_base(pumpProto & sim_value)
 	: selected_device(std::make_unique<device_properties>())
 	, pump(sim_value)
@@ -22,23 +21,21 @@ class driver_base{
 	virtual ~driver_base() 
 	{
 		stop_simulation();
-    }
+	}
 	
 	virtual void set_devices() = 0; // Make pure virtual
 
 	virtual void device_selection(std::string & device_name)
 	{
 		auto it = std::find_if( device_list.begin(), device_list.end(), [&device_name](const device_properties & device) 
-		{
-            return device.device_name == device_name;
-        }
-    	);
+					{
+						return device.device_name == device_name;
+					});
 
-    	if (it != device_list.end()) 
+    	if ( it != device_list.end() ) 
 		{
         	std::cout << "Device found: " << it->device_name << std::endl;
 			*selected_device = *it; // Copy the entire struct
-
     	}
 		else
 		{
@@ -106,17 +103,18 @@ class driver_base{
 
 	virtual void generate_simulation()
     {
-        start_simulation();
-        auto start_time = std::chrono::steady_clock::now();
-        auto duration = std::chrono::seconds(simulation_duration);
-     
-        while(std::chrono::steady_clock::now() - start_time < duration)
-        {
-	        std::this_thread::sleep_for(std::chrono::seconds(1));
+		auto start_time = std::chrono::steady_clock::now();
+		auto duration = std::chrono::seconds(simulation_duration);
+		
+		start_simulation();
+			
+		while(std::chrono::steady_clock::now() - start_time < duration)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(1));
 		    // Let the simulation thread handle the updates
-        }
+		}
        
-        stop_simulation();
+		stop_simulation();
     }
 
 	virtual void update_driver_value() = 0;
@@ -131,15 +129,13 @@ class driver_base{
 		std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"<< std::endl;
 	}
 
-	protected : 
-	
+  protected: 
 	std::vector<device_properties> device_list;
 	pumpProto & pump; 
 	std::atomic<bool> running; // Control simulation loop
 	std::unique_ptr<device_properties>  selected_device;
 	std::thread simulation_thread; // Thread for simulation
 	int simulation_duration;
-
 };
 
 

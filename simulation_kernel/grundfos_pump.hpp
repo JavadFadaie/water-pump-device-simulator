@@ -3,13 +3,12 @@
 
 #include "driver_base.hpp"
 
-class grundfos_pump: public driver_base{
+class grundfos_pump: public driver_base {
 
-    private : 
+  private: 
     pumpProto grundfos_simulation_pump; 
 
-    public: 
-
+  public: 
     grundfos_pump()
     :driver_base(grundfos_simulation_pump)
     {}
@@ -34,10 +33,8 @@ class grundfos_pump: public driver_base{
 
     void update_driver_value() override
     {
-        std::cout << "[Flow Rate   	 Update] " << grundfos_simulation_pump.flow_rate << " L/min" << std::endl;
-           
+        std::cout << "[Flow Rate Update] " << grundfos_simulation_pump.flow_rate << " L/min" << std::endl;
     }
-
 };
 
 #endif 

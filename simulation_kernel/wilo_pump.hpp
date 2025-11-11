@@ -5,12 +5,10 @@
 
 class wilo_pump: public driver_base{
 
-    private : 
-
+  private: 
     pumpProto wilo_simulation_pump; 
 
-    public: 
-
+  public: 
     wilo_pump()
     :driver_base(wilo_simulation_pump)
     {}
@@ -35,10 +33,8 @@ class wilo_pump: public driver_base{
 
     void update_driver_value() override
     {
-        std::cout << "[Flow Rate   	 Update] " << wilo_simulation_pump.flow_rate << " L/min" << std::endl;
-           
+        std::cout << "[Flow Rate   	 Update] " << wilo_simulation_pump.flow_rate << " L/min" << std::endl;       
     }
-
 };
 
 #endif 
