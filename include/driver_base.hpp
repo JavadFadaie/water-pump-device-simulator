@@ -9,6 +9,7 @@
 #include <memory>
 #include <atomic>
 #include "simulation_variable.hpp" // Include the header for device_properties and pumpProto
+#include "driverId.hpp" // Include the header for driverId enum
 
 class driver_base{
 

@@ -4,9 +4,8 @@
 #include <thread>
 #include <chrono>
 
-
-int main(){
-
+int main()
+{
 	grundfos_pump  pump;
     pump.set_devices(); // Populate device_list
 	pump.display_device(); // Display available devices
