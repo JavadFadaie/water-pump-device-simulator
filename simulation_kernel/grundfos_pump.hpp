@@ -45,7 +45,6 @@ class grundfos_pump: public driver_base {
   private: 
     pumpProto grundfos_simulation_pump; 
     driver_registery driver_info;
-  
 };
 
 #endif 

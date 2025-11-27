@@ -118,6 +118,17 @@ class driver_base{
 		stop_simulation();
     }
 
+	// Virtual methods for derived classes to implement
+	virtual void set_simulation_duration(int duration_seconds)
+	{
+		simulation_duration = duration_seconds;
+	}
+
+	virtual void driver_simulation()
+	{
+		generate_simulation();
+	}
+
 	virtual void update_driver_value() = 0;
 
 	void print_update_driver_values() 

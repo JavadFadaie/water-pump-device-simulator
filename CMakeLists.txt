@@ -14,6 +14,10 @@ set(SOURCES
 set(HEADERS
     include/simulation_variable.hpp
     include/driver_base.hpp
+    include/pump_factory.hpp
+    #include/menu_helper.hpp
+    include/driver_registery.hpp
+    include/driverId.hpp
     simulation_kernel/grundfos_pump.hpp
     simulation_kernel/wilo_pump.hpp
 )

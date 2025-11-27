@@ -24,6 +24,10 @@ into the one web UI thing
 
 
 need to add the manufactuere
+
+1. we need to deine another class like simualtion register nand in this class we need to bring the driver id
+driver name and manufacturere name all the requiren information that this driver needed.
+
 _____________________________________________________
 
 
@@ -36,8 +40,19 @@ _____________________________________________________
  
 
 4. design the web UI and try to controll all the functionalyitiy inside the web UI
+    in this case we need to have some abstract that we could choose based driver name and id choose the correct simulator
+    
+
+
+
 5. find a way to to write the register into some register and try to have the slcore that could read this register at the same time
 
 
+________________________________________________________________
 
+1. step required : 26/11/2025
+
+        1. haveing class pump factory that bring back the object of each classes, and we could choose the device dynamically
+
+        2. we need a function that class the driver_init_info function in each class, and then provide a list of all the driver
 

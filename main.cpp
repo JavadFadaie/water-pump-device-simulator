@@ -1,21 +1,13 @@
 #include <iostream>
-#include "grundfos_pump.hpp"
+#include "pump_factory.hpp"
 #include <string>
 #include <thread>
 #include <chrono>
 
 int main()
 {
-	grundfos_pump  pump;
-    pump.set_devices(); // Populate device_list
-	pump.display_device(); // Display available devices
-    std::string device_name = "Grundfos CRE 20"; // Valid device name
-    pump.set_simulation_duration(60); // Set simulation duration to 60 seconds
-    pump.device_selection(device_name);
-    // Start simulation in a separate thread
-
-    pump.driver_simulation();
-    //pump.update_driver_value();
-
+    pump_factory factory;
+    factory.choose_pump_driver(static_cast<int>(driverId::PUMP_WILO));
+    
 	return 0;
 }
