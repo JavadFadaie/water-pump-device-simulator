@@ -9,10 +9,10 @@ class driver_registery
   driver_registery
         ( int _driverId
         , std::string _driver_name
-        , std::string _manufacturer_name)
+        , int _manufacturer_id)
         : driverId(_driverId)
         , driver_name(_driver_name)
-        , manufacturer_name(_manufacturer_name)
+        , manufacturer_id(_manufacturer_id)
         {}
    
    driver_registery() = default;     
@@ -20,7 +20,7 @@ class driver_registery
   protected : 
     int driverId;
     std::string driver_name;
-    std::string manufacturer_name; 
+    int manufacturer_id; 
 };
 
 #endif

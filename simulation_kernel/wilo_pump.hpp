@@ -4,6 +4,7 @@
 #include "driver_base.hpp"
 #include "driver_registery.hpp"
 #include "driverId.hpp"
+#include "manufactureId.hpp"
 
 class wilo_pump: public driver_base
 {
@@ -14,7 +15,7 @@ class wilo_pump: public driver_base
 
     void driver_init_info()
     {
-      driver_info = driver_registery(static_cast<int>(driverId::PUMP_WILO), "Wilo Pump Driver", "Wilo");
+      driver_info   = driver_registery(static_cast<int>(driverId::PUMP_WILO), "Wilo Pump Driver", static_cast<int>(ManufacturerId::MID_WILO));
     }
     
     void set_devices() override
@@ -38,6 +39,7 @@ class wilo_pump: public driver_base
 
     void update_driver_value() override
     {
+       std::cout << "[Driver ID: " << static_cast<int>(driverId::PUMP_WILO) << "] ";
        std::cout << "[Flow Rate   	 Update] " << wilo_simulation_pump.flow_rate << " L/min" << std::endl;       
     }
 

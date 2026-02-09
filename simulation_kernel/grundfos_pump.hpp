@@ -4,6 +4,7 @@
 #include "driver_base.hpp"
 #include "driver_registery.hpp"
 #include "driverId.hpp"
+#include "manufactureId.hpp"
 
 class grundfos_pump: public driver_base {
 
@@ -14,7 +15,7 @@ class grundfos_pump: public driver_base {
     
     void driver_init_info()
     {
-      driver_info = driver_registery(static_cast<int>(driverId::PUMP_GRUNDFOS), "Grundfos Pump Driver", "Grundfos");
+      driver_info = driver_registery(static_cast<int>(driverId::PUMP_GRUNDFOS), "Grundfos Pump Driver", static_cast<int>(ManufacturerId::MID_GRUNDFOS));
     }
 
     void set_devices() override
