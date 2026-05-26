@@ -56,3 +56,8 @@ ________________________________________________________________
 
         2. we need a function that class the driver_init_info function in each class, and then provide a list of all the driver
 
+
+2. update 27/11/2025 
+        1.1 the abstraction is now effective and now we able to change the driver from
+            now we should work with linking the abckend to the frondend and try to make the driver selection is
+            done in web UI

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <atomic>
+#include <mutex>
 #include "simulation_variable.hpp" // Include the header for device_properties and pumpProto
 #include "driverId.hpp" // Include the header for driverId enum
 
@@ -17,6 +18,8 @@ class driver_base{
 	driver_base(pumpProto & sim_value)
 	: selected_device(std::make_unique<device_properties>())
 	, pump(sim_value)
+	, running(false)
+	, simulation_duration(60)
 	{}
 
 	virtual ~driver_base() 
@@ -55,6 +58,7 @@ class driver_base{
 
 	void simulate_values()
 	{
+		std::lock_guard<std::mutex> lock(data_mutex);
 		pump.pump_on = true;
 		if(pump.pump_on && selected_device)
 		{
@@ -102,6 +106,33 @@ class driver_base{
 		running = status;
 	}
 
+	pumpProto get_pump_snapshot() const
+	{
+		std::lock_guard<std::mutex> lock(data_mutex);
+		return pump;
+	}
+
+	const std::vector<device_properties>& get_device_list() const
+	{
+		return device_list;
+	}
+
+	bool is_running() const
+	{
+		return running.load();
+	}
+
+	bool device_selection_by_index(int index)
+	{
+		if (index >= 0 && index < static_cast<int>(device_list.size()))
+		{
+			std::string name = device_list[index].device_name;
+			device_selection(name);
+			return (selected_device != nullptr);
+		}
+		return false;
+	}
+
 	virtual void generate_simulation()
     {
 		auto start_time = std::chrono::steady_clock::now();
@@ -141,13 +172,14 @@ class driver_base{
 		std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"<< std::endl;
 	}
 
-  protected: 
+  protected:
 	std::vector<device_properties> device_list;
-	pumpProto & pump; 
-	std::atomic<bool> running; // Control simulation loop
+	pumpProto & pump;
+	std::atomic<bool> running;
 	std::unique_ptr<device_properties>  selected_device;
-	std::thread simulation_thread; // Thread for simulation
+	std::thread simulation_thread;
 	int simulation_duration;
+	mutable std::mutex data_mutex;
 };
 
 
