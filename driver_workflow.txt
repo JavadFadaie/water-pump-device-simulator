@@ -1,39 +1,178 @@
-# Driver Workflow Explanation
+# Water Pump Simulator Workflow (Easy to Follow + Example)
 
-This document explains the workflow of the water pump device simulator when a driver is selected, detailing the process from driver selection to value generation and projection to the front end.
+This file explains the flow as a real story with one concrete example.
 
-## 1. Driver Selection
-- The user selects a driver (e.g., `Grundfos` or `Wilo`) from the available options.
-- The selection triggers the `driver_registry.hpp` file, which contains the logic to register and initialize the appropriate driver.
-- The `driver_registry.hpp` file maps the selected driver to its corresponding implementation in the `simulation_kernel` directory.
+Example we follow:
+- User selects driver: `Wilo` (driver_id = 2)
+- User selects model: `Stratos MAXO 60` (model_id = 1)
+- User clicks `Start`
 
-## 2. Driver Initialization
-- Based on the selected driver, the corresponding driver implementation file is loaded:
-  - For `Grundfos`: `grundfos_pump_register.cpp` and `grundfos_pump.hpp`
-  - For `Wilo`: `wilo_pump_register.cpp` and `wilo_pump.hpp`
-- The driver-specific initialization logic is executed, setting up the necessary parameters and configurations for the simulation.
+## 1) App starts (once)
 
-## 3. Simulation Variable Setup
-- The `simulation_variable.hpp` file is used to define and manage the simulation variables.
-- These variables represent the state and behavior of the pump during the simulation.
-- The driver implementation updates these variables based on the simulation logic.
+1. `main()` creates `web_server server;`
+2. `main()` calls `server.start(8085, "./static")`
+3. `web_server::start()` calls `setup_routes()`
+4. Routes become active:
+   - `GET /api/drivers`
+   - `GET /api/drivers/{id}/models`
+   - `POST /api/simulation/start`
+   - `GET /api/simulation/status`
+   - `POST /api/simulation/stop`
 
-## 4. Value Generation
-- The simulation kernel generates values based on the driver logic and the defined simulation variables.
-- The generated values simulate the behavior of the selected pump under various conditions.
-- The logic for value generation is implemented in the driver-specific files (`grundfos_pump_register.cpp` or `wilo_pump_register.cpp`).
+## 2) How driver IDs become C++ classes (once)
 
-## 5. Backend to Frontend Projection
-- The generated values are passed to the `web_server.hpp` file, which handles communication between the backend and the frontend.
-- The `web_server.hpp` file uses HTTP or WebSocket protocols to send the simulation data to the frontend.
-- The `static/index.html` file in the `static` directory serves as the frontend interface.
-- The frontend dynamically updates to display the simulation data in real-time.
+At startup, these lines register drivers:
+- `REGISTER_PUMP_DRIVER(1, "Grundfos", grundfos_pump)`
+- `REGISTER_PUMP_DRIVER(2, "Wilo", wilo_pump)`
 
-## Summary
-1. **Driver Selection**: User selects a driver.
-2. **Driver Initialization**: Corresponding driver logic is initialized.
-3. **Simulation Variable Setup**: Variables are defined and managed.
-4. **Value Generation**: Simulation kernel generates values.
-5. **Backend to Frontend Projection**: Data is sent to the frontend for real-time display.
+So later:
+- `create_driver(1)` returns `grundfos_pump`
+- `create_driver(2)` returns `wilo_pump`
 
-This workflow ensures a seamless simulation experience, from driver selection to real-time data visualization on the frontend.
+## 3) Real user flow with exact function calls
+
+### Step A: Page loads
+Frontend JS runs:
+1. `loadDrivers()`
+2. `pollStatus()`
+
+`loadDrivers()` sends:
+- `GET /api/drivers`
+
+Backend receives it and runs:
+1. `web_server::handle_get_drivers()`
+2. `driver_registry::instance().list_drivers()`
+3. Returns JSON like:
+   - `{ "id": 1, "name": "Grundfos" }`
+   - `{ "id": 2, "name": "Wilo" }`
+
+Frontend fills the Driver dropdown.
+
+### Step B: User selects driver = Wilo
+UI event fires:
+- `driverSelect.addEventListener('change', ...)`
+
+Frontend calls:
+1. `loadModels(2)`
+2. Sends `GET /api/drivers/2/models`
+
+Backend runs:
+1. `web_server::handle_get_models(driver_id=2)`
+2. `drv = driver_registry::instance().create_driver(2)` -> creates `wilo_pump`
+3. `drv->set_devices()` -> fills Wilo model list
+4. `drv->get_device_list()` -> returns models
+5. Backend returns model JSON array
+
+Frontend fills the Model dropdown with Wilo models.
+
+### Step C: User selects model = Stratos MAXO 60 (id=1)
+UI event fires:
+- `modelSelect.addEventListener('change', ...)`
+
+Frontend calls:
+1. `showModelSpecs(1)`
+2. Reads selected model from `currentModels`
+3. Shows max flow / pressure / power in UI
+4. Enables `Start` button
+
+### Step D: User clicks Start
+UI event fires:
+- `btnStart.addEventListener('click', ...)`
+
+Frontend sends:
+- `POST /api/simulation/start`
+- Body: `{ "driver_id": 2, "model_id": 1 }`
+
+Backend runs `web_server::handle_start()`:
+1. Parse JSON body
+2. Validate `driver_id` and `model_id`
+3. Lock `sim_mutex_`
+4. If old simulation is running -> `active_driver_->stop_simulation()`
+5. `active_driver_ = create_driver(2)` -> `wilo_pump`
+6. `active_driver_->set_devices()`
+7. `active_driver_->select_device_by_index(1)` -> selects `Stratos MAXO 60`
+8. `active_model_id_ = 1`
+9. `active_driver_->start_simulation()`
+10. Return `{ "status": "ok" }`
+
+## 4) What happens after `start_simulation()`
+
+`driver_base::start_simulation()` creates a thread:
+- `std::thread(&driver_base::simulate_driver_values, this)`
+
+Thread function `simulate_driver_values()` loop:
+1. `set_simulation_status(true)`
+2. While running:
+   - `simulate_values()`
+   - `update_driver_value()`
+   - sleep 1 second
+
+### Inside `simulate_values()` each second
+1. Lock `pump_mutex`
+2. Use selected model limits + random offsets
+3. Update:
+   - `pump.flow_rate`
+   - `pump.pressure`
+   - `pump.pump_power`
+   - `pump.pump_run_time += 1`
+   - `pump.water_level += pump.flow_rate / 60`
+
+These values are stored in the active driver's `pumpProto` data.
+
+## 5) How generated backend data reaches frontend
+
+This project uses polling (every 1 second), not websocket push.
+
+After successful Start, frontend runs `startPolling()`:
+1. `setInterval(pollStatus, 1000)`
+2. Every second `pollStatus()` sends `GET /api/simulation/status`
+
+Backend runs `web_server::handle_status()`:
+1. Lock `sim_mutex_`
+2. Lock driver data with `active_driver_->get_mutex()`
+3. Read `active_driver_->get_pump_data()`
+4. Return JSON values:
+   - `running`, `flow_rate`, `pressure`, `pump_power`, `water_level`, `pump_run_time`, `model_id`
+
+Frontend `pollStatus()` then:
+1. Updates badge/button state (Running/Stopped)
+2. Calls `updateDashboard(data)`
+3. `updateDashboard()` writes values to cards and gauge widths
+
+So the projection path is:
+- UI -> backend: HTTP requests (`/start` with chosen IDs)
+- Backend -> UI: periodic HTTP status responses (`/status` every second)
+
+## 6) Mini trace (one single second after Start)
+
+1. Simulation thread executes `simulate_values()` and updates `pump.flow_rate` (example: 61.8)
+2. Frontend timer calls `pollStatus()`
+3. Browser requests `GET /api/simulation/status`
+4. Backend `handle_status()` reads current `pumpProto`
+5. Backend returns JSON (example):
+   - `{ "running": true, "flow_rate": 61.8, "pressure": 3.4, ... }`
+6. Frontend `updateDashboard(data)` sets:
+   - Flow card text to `61.80`
+   - Pressure card text to `3.40`
+   - Gauge bars width based on model max values
+
+This repeats every second while simulation is running.
+
+## 7) Stop flow
+
+1. User clicks `Stop`
+2. Frontend sends `POST /api/simulation/stop`
+3. Backend `handle_stop()` calls `active_driver_->stop_simulation()`
+4. `stop_simulation()` sets running false and joins thread
+5. Next status polls show `running = false`, UI switches to Stopped
+
+## 8) Short answer to your question
+
+When user selects one driver and one model and clicks Start, the key backend call is:
+- `web_server::handle_start()` -> `create_driver(driver_id)` -> `set_devices()` -> `select_device_by_index(model_id)` -> `start_simulation()`
+
+When data is generated, the key projection back to frontend is:
+- `driver_base::simulate_values()` updates `pumpProto`
+- frontend `pollStatus()` calls `/api/simulation/status`
+- backend `handle_status()` returns `pumpProto` JSON
+- frontend `updateDashboard(data)` renders it on screen.
