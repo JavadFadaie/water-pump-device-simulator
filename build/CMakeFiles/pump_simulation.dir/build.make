@@ -83,18 +83,57 @@ CMakeFiles/pump_simulation.dir/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/pump_simulation.dir/main.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/main.cpp" -o CMakeFiles/pump_simulation.dir/main.cpp.s
 
+CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o: CMakeFiles/pump_simulation.dir/flags.make
+CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o: ../simulation_kernel/grundfos_pump_register.cpp
+CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o: CMakeFiles/pump_simulation.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o -MF CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o.d -o CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o -c "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/grundfos_pump_register.cpp"
+
+CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/grundfos_pump_register.cpp" > CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.i
+
+CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/grundfos_pump_register.cpp" -o CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.s
+
+CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o: CMakeFiles/pump_simulation.dir/flags.make
+CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o: ../simulation_kernel/wilo_pump_register.cpp
+CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o: CMakeFiles/pump_simulation.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir="/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o -MF CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o.d -o CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o -c "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/wilo_pump_register.cpp"
+
+CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/wilo_pump_register.cpp" > CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.i
+
+CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/wilo_pump_register.cpp" -o CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.s
+
 # Object files for target pump_simulation
 pump_simulation_OBJECTS = \
-"CMakeFiles/pump_simulation.dir/main.cpp.o"
+"CMakeFiles/pump_simulation.dir/main.cpp.o" \
+"CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o" \
+"CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o"
 
 # External object files for target pump_simulation
 pump_simulation_EXTERNAL_OBJECTS =
 
 pump_simulation: CMakeFiles/pump_simulation.dir/main.cpp.o
+pump_simulation: CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o
+pump_simulation: CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o
 pump_simulation: CMakeFiles/pump_simulation.dir/build.make
+pump_simulation: /usr/lib/x86_64-linux-gnu/libbrotlicommon.so
+pump_simulation: /usr/lib/x86_64-linux-gnu/libbrotlienc.so
+pump_simulation: /usr/lib/x86_64-linux-gnu/libbrotlidec.so
+pump_simulation: /usr/lib/x86_64-linux-gnu/libz.so
+pump_simulation: /usr/lib/x86_64-linux-gnu/libssl.so
+pump_simulation: /usr/lib/x86_64-linux-gnu/libcrypto.so
 pump_simulation: CMakeFiles/pump_simulation.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable pump_simulation"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_4) "Linking CXX executable pump_simulation"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/pump_simulation.dir/link.txt --verbose=$(VERBOSE)
+	/usr/bin/cmake -E copy_directory /home/javad/Desktop/internal\ project/simulator\ water\ pump/water-pump-device-simulator/static /home/javad/Desktop/internal\ project/simulator\ water\ pump/water-pump-device-simulator/build/static
 
 # Rule to build all files generated by this target.
 CMakeFiles/pump_simulation.dir/build: pump_simulation

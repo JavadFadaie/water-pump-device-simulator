@@ -1,6 +1,10 @@
 file(REMOVE_RECURSE
   "CMakeFiles/pump_simulation.dir/main.cpp.o"
   "CMakeFiles/pump_simulation.dir/main.cpp.o.d"
+  "CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o"
+  "CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o.d"
+  "CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o"
+  "CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o.d"
   "pump_simulation"
   "pump_simulation.pdb"
 )

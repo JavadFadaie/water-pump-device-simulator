@@ -1,13 +1,12 @@
 #include <iostream>
-#include "pump_factory.hpp"
-#include <string>
-#include <thread>
-#include <chrono>
+#include "web_server.hpp"
 
 int main()
 {
-    pump_factory factory;
-    factory.choose_pump_driver(static_cast<int>(driverId::PUMP_WILO));
-    
-	return 0;
+    std::cout << "Water Pump Device Simulator" << std::endl;
+
+    web_server server;
+    server.start(8085, "./static");
+
+    return 0;
 }

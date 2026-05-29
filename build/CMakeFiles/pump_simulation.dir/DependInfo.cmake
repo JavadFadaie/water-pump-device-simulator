@@ -9,6 +9,8 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/main.cpp" "CMakeFiles/pump_simulation.dir/main.cpp.o" "gcc" "CMakeFiles/pump_simulation.dir/main.cpp.o.d"
+  "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/grundfos_pump_register.cpp" "CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o" "gcc" "CMakeFiles/pump_simulation.dir/simulation_kernel/grundfos_pump_register.cpp.o.d"
+  "/home/javad/Desktop/internal project/simulator water pump/water-pump-device-simulator/simulation_kernel/wilo_pump_register.cpp" "CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o" "gcc" "CMakeFiles/pump_simulation.dir/simulation_kernel/wilo_pump_register.cpp.o.d"
   )
 
 # Targets to which this target links.

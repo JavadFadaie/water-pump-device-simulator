@@ -8,90 +8,100 @@
 #include <algorithm>
 #include <memory>
 #include <atomic>
-#include "simulation_variable.hpp" // Include the header for device_properties and pumpProto
-#include "driverId.hpp" // Include the header for driverId enum
+#include <mutex>
+#include "simulation_variable.hpp"
 
 class driver_base{
 
-  public: 
+  public:
 	driver_base(pumpProto & sim_value)
 	: selected_device(std::make_unique<device_properties>())
 	, pump(sim_value)
+	, running{false}
+	, simulation_duration{0}
 	{}
 
-	virtual ~driver_base() 
+	virtual ~driver_base()
 	{
 		stop_simulation();
 	}
-	
-	virtual void set_devices() = 0; // Make pure virtual
+
+	virtual void set_devices() = 0;
 
 	virtual void device_selection(std::string & device_name)
 	{
-		auto it = std::find_if( device_list.begin(), device_list.end(), [&device_name](const device_properties & device) 
+		auto it = std::find_if( device_list.begin(), device_list.end(), [&device_name](const device_properties & device)
 					{
 						return device.device_name == device_name;
 					});
 
-    	if ( it != device_list.end() ) 
+    	if ( it != device_list.end() )
 		{
         	std::cout << "Device found: " << it->device_name << std::endl;
-			*selected_device = *it; // Copy the entire struct
+			*selected_device = *it;
     	}
 		else
 		{
         	std::cout << "Device not found" << std::endl;
-			selected_device = nullptr; // Reset if not found
+			selected_device = nullptr;
     	}
+	}
+
+	bool select_device_by_index(int index)
+	{
+		if (index < 0 || index >= static_cast<int>(device_list.size()))
+		{
+			return false;
+		}
+		*selected_device = device_list[index];
+		return true;
 	}
 
 	virtual void display_device()
 	{
 		for( auto i : device_list)
 		{
-			std::cout<< i.device_name << "  " << i.max_flow_rate << std::endl; 
+			std::cout<< i.device_name << "  " << i.max_flow_rate << std::endl;
 		}
 	}
 
 	void simulate_values()
 	{
+		std::lock_guard<std::mutex> lock(pump_mutex);
 		pump.pump_on = true;
 		if(pump.pump_on && selected_device)
 		{
-			pump.flow_rate 	= selected_device->max_flow_rate + static_cast<float>(std::rand() % 500) / 100.0f; // 10.0 - 15.0 L/min
-			pump.pressure 	= selected_device->max_pressure  + static_cast<float>(std::rand() % 100) / 50.0f;   // 1.0 - 3.0 bar
-			pump.pump_power = selected_device->power		 + static_cast<float>(std::rand() % 40);          // 480 - 520 W
-			pump.pump_run_time += 1.0f; 											  // simulate one more second
-			pump.water_level += pump.flow_rate / 60.0f; 							  // increase tank level in each sec
-		}	
+			pump.flow_rate 	= selected_device->max_flow_rate + static_cast<float>(std::rand() % 500) / 100.0f;
+			pump.pressure 	= selected_device->max_pressure  + static_cast<float>(std::rand() % 100) / 50.0f;
+			pump.pump_power = selected_device->power		 + static_cast<float>(std::rand() % 40);
+			pump.pump_run_time += 1.0f;
+			pump.water_level += pump.flow_rate / 60.0f;
+		}
 	}
 
 	void simulate_driver_values()
 	{
 		set_simulation_status(true);
-		while (running) 
+		while (running)
 		{
-        	simulate_values();  								// Simulate new flow_rate
-        	update_driver_value();								// Print flow rate during simulation
-			//print_update_driver_values();
-        	std::this_thread::sleep_for(std::chrono::seconds(1));  // Wait 1 seconds
+        	simulate_values();
+        	update_driver_value();
+        	std::this_thread::sleep_for(std::chrono::seconds(1));
 		}
 	}
 
-	void start_simulation() 
+	void start_simulation()
 	{
-		//The std::thread constructor creates a new thread and immediately starts 
-		//executing driver_base::simulate_driver_values on the current object (this).
-        if (!running) 
+        if (!running)
 		{
             simulation_thread = std::thread(&driver_base::simulate_driver_values, this);
         }
     }
 
-	void stop_simulation() 
+	void stop_simulation()
 	{
 		set_simulation_status(false);
-		if (simulation_thread.joinable()) 
+		if (simulation_thread.joinable())
 		{
             simulation_thread.join();
         }
@@ -106,19 +116,17 @@ class driver_base{
     {
 		auto start_time = std::chrono::steady_clock::now();
 		auto duration = std::chrono::seconds(simulation_duration);
-		
+
 		start_simulation();
-			
+
 		while(std::chrono::steady_clock::now() - start_time < duration)
 		{
 			std::this_thread::sleep_for(std::chrono::seconds(1));
-		    // Let the simulation thread handle the updates
 		}
-       
+
 		stop_simulation();
     }
 
-	// Virtual methods for derived classes to implement
 	virtual void set_simulation_duration(int duration_seconds)
 	{
 		simulation_duration = duration_seconds;
@@ -131,7 +139,7 @@ class driver_base{
 
 	virtual void update_driver_value() = 0;
 
-	void print_update_driver_values() 
+	void print_update_driver_values()
 	{
 		std::cout << "[Pump Run Time Update] " << pump.pump_run_time << " seconds" << std::endl;
     	std::cout << "[Flow Rate   	 Update] " << pump.flow_rate << " L/min" << std::endl;
@@ -141,13 +149,39 @@ class driver_base{
 		std::cout << "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"<< std::endl;
 	}
 
-  protected: 
+	const pumpProto& get_pump_data() const
+	{
+		return pump;
+	}
+
+	pumpProto& get_pump_data()
+	{
+		return pump;
+	}
+
+	const std::vector<device_properties>& get_device_list() const
+	{
+		return device_list;
+	}
+
+	bool is_running() const
+	{
+		return running.load();
+	}
+
+	std::mutex& get_mutex()
+	{
+		return pump_mutex;
+	}
+
+  protected:
 	std::vector<device_properties> device_list;
-	pumpProto & pump; 
-	std::atomic<bool> running; // Control simulation loop
+	pumpProto & pump;
+	std::atomic<bool> running;
 	std::unique_ptr<device_properties>  selected_device;
-	std::thread simulation_thread; // Thread for simulation
+	std::thread simulation_thread;
 	int simulation_duration;
+	std::mutex pump_mutex;
 };
 
 

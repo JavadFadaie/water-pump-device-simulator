@@ -1,0 +1,39 @@
+# Driver Workflow Explanation
+
+This document explains the workflow of the water pump device simulator when a driver is selected, detailing the process from driver selection to value generation and projection to the front end.
+
+## 1. Driver Selection
+- The user selects a driver (e.g., `Grundfos` or `Wilo`) from the available options.
+- The selection triggers the `driver_registry.hpp` file, which contains the logic to register and initialize the appropriate driver.
+- The `driver_registry.hpp` file maps the selected driver to its corresponding implementation in the `simulation_kernel` directory.
+
+## 2. Driver Initialization
+- Based on the selected driver, the corresponding driver implementation file is loaded:
+  - For `Grundfos`: `grundfos_pump_register.cpp` and `grundfos_pump.hpp`
+  - For `Wilo`: `wilo_pump_register.cpp` and `wilo_pump.hpp`
+- The driver-specific initialization logic is executed, setting up the necessary parameters and configurations for the simulation.
+
+## 3. Simulation Variable Setup
+- The `simulation_variable.hpp` file is used to define and manage the simulation variables.
+- These variables represent the state and behavior of the pump during the simulation.
+- The driver implementation updates these variables based on the simulation logic.
+
+## 4. Value Generation
+- The simulation kernel generates values based on the driver logic and the defined simulation variables.
+- The generated values simulate the behavior of the selected pump under various conditions.
+- The logic for value generation is implemented in the driver-specific files (`grundfos_pump_register.cpp` or `wilo_pump_register.cpp`).
+
+## 5. Backend to Frontend Projection
+- The generated values are passed to the `web_server.hpp` file, which handles communication between the backend and the frontend.
+- The `web_server.hpp` file uses HTTP or WebSocket protocols to send the simulation data to the frontend.
+- The `static/index.html` file in the `static` directory serves as the frontend interface.
+- The frontend dynamically updates to display the simulation data in real-time.
+
+## Summary
+1. **Driver Selection**: User selects a driver.
+2. **Driver Initialization**: Corresponding driver logic is initialized.
+3. **Simulation Variable Setup**: Variables are defined and managed.
+4. **Value Generation**: Simulation kernel generates values.
+5. **Backend to Frontend Projection**: Data is sent to the frontend for real-time display.
+
+This workflow ensures a seamless simulation experience, from driver selection to real-time data visualization on the frontend.
