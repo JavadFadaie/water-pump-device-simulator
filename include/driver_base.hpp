@@ -10,6 +10,8 @@
 #include <atomic>
 #include <mutex>
 #include "simulation_variable.hpp"
+#include "modbus_core.hpp"
+#include "channel_device.hpp"
 
 class driver_base{
 
@@ -27,6 +29,13 @@ class driver_base{
 	}
 
 	virtual void set_devices() = 0;
+
+	void setModbusCore(std::shared_ptr<ModbusCore> core)
+	{
+		modbus_core_ = core;
+		channel_dev_ = std::make_unique<channel_device<RegisterType, uint16_t>>(*core);
+		initChannels();
+	}
 
 	virtual void device_selection(std::string & device_name)
 	{
@@ -182,6 +191,42 @@ class driver_base{
 	std::thread simulation_thread;
 	int simulation_duration;
 	std::mutex pump_mutex;
+
+	std::shared_ptr<ModbusCore> modbus_core_;
+	std::unique_ptr<channel_device<RegisterType, uint16_t>> channel_dev_;
+
+	virtual void initChannels()
+	{
+		if (!channel_dev_) return;
+		channel_dev_->addChannel("CH_FLOW_RATE",   RegisterType::InputRegister, REG_FLOW_RATE);
+		channel_dev_->addChannel("CH_PRESSURE",    RegisterType::InputRegister, REG_PRESSURE);
+		channel_dev_->addChannel("CH_PUMP_POWER",  RegisterType::InputRegister, REG_PUMP_POWER);
+		channel_dev_->addChannel("CH_WATER_LEVEL", RegisterType::InputRegister, REG_WATER_LEVEL);
+		channel_dev_->addChannel("CH_RUN_TIME",    RegisterType::InputRegister, REG_RUN_TIME);
+		channel_dev_->addChannel("CH_PUMP_ON",     RegisterType::InputRegister, REG_PUMP_ON);
+	}
+
+	void writeSimulationToRegisters()
+	{
+		if (!channel_dev_) return;
+
+		channel_dev_->setRegisterValueFloat("CH_FLOW_RATE",   pump.flow_rate,     1.0f);
+		channel_dev_->setRegisterValueFloat("CH_PRESSURE",    pump.pressure,      1.0f);
+		channel_dev_->setRegisterValueFloat("CH_PUMP_POWER",  pump.pump_power,    1.0f);
+		channel_dev_->setRegisterValueFloat("CH_WATER_LEVEL", pump.water_level,   1.0f);
+		channel_dev_->setRegisterValueFloat("CH_RUN_TIME",    pump.pump_run_time, 1.0f);
+		channel_dev_->setRegisterValue("CH_PUMP_ON", pump.pump_on ? 1 : 0);
+
+		if (modbus_core_)
+		{
+			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_FLOW_RATE,   pump.flow_rate);
+			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_PRESSURE,    pump.pressure);
+			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_PUMP_POWER,  pump.pump_power);
+			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_WATER_LEVEL, pump.water_level);
+			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_RUN_TIME,    pump.pump_run_time);
+			modbus_core_->setRegisterValue(RegisterType::HoldingRegister, REG_PUMP_ON, pump.pump_on ? 1 : 0);
+		}
+	}
 };
 
 

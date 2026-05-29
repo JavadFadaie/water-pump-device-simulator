@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "driver_registry.hpp"
 #include "driver_base.hpp"
+#include "modbus_core.hpp"
 #include <mutex>
 #include <memory>
 #include <iostream>
@@ -16,6 +17,11 @@
 class web_server
 {
   public:
+    void setModbusCore(std::shared_ptr<ModbusCore> core)
+    {
+        modbus_core_ = core;
+    }
+
     void start(int port, const std::string& static_dir)
     {
         setup_routes(static_dir);
@@ -28,6 +34,7 @@ class web_server
     std::unique_ptr<driver_base> active_driver_;
     int active_model_id_ = -1;
     std::mutex sim_mutex_;
+    std::shared_ptr<ModbusCore> modbus_core_;
 
     void setup_routes(const std::string& static_dir)
     {
@@ -151,6 +158,11 @@ class web_server
         }
 
         active_driver_->set_devices();
+
+        if (modbus_core_)
+        {
+            active_driver_->setModbusCore(modbus_core_);
+        }
 
         if (!active_driver_->select_device_by_index(model_id))
         {

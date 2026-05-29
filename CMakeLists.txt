@@ -19,11 +19,18 @@ FetchContent_Declare(json
 )
 FetchContent_MakeAvailable(json)
 
+# Find and link libmodbus
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBMODBUS REQUIRED libmodbus)
+include_directories(${LIBMODBUS_INCLUDE_DIRS})
+link_directories(${LIBMODBUS_LIBRARY_DIRS})
+
 # Specify the source files
 set(SOURCES
     main.cpp
     simulation_kernel/grundfos_pump_register.cpp
     simulation_kernel/wilo_pump_register.cpp
+    modbus_server.cpp
 )
 
 # Specify the header files (for IDEs to recognize them)
@@ -33,6 +40,11 @@ set(HEADERS
     include/driver_registry.hpp
     include/pump_factory.hpp
     include/web_server.hpp
+    include/modbus_types.hpp
+    include/protocol_writer.hpp
+    include/modbus_core.hpp
+    include/channel_device.hpp
+    include/modbus_server.hpp
     simulation_kernel/grundfos_pump.hpp
     simulation_kernel/wilo_pump.hpp
 )
@@ -53,6 +65,7 @@ target_link_libraries(pump_simulation PRIVATE
     Threads::Threads
     httplib::httplib
     nlohmann_json::nlohmann_json
+    ${LIBMODBUS_LIBRARIES}
 )
 
 # Copy static web files to build directory

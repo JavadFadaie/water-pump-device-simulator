@@ -23,8 +23,7 @@ class grundfos_pump: public driver_base {
 
     void update_driver_value() override
     {
-        std::cout << "[Driver ID: " << DRIVER_ID << "] ";
-        std::cout << "[Flow Rate Update] " << grundfos_simulation_pump.flow_rate << " L/min" << std::endl;
+        writeSimulationToRegisters();
     }
 
   private:
