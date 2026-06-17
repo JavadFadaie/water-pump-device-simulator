@@ -7,34 +7,25 @@
 struct pumpProto
 {
 	//Pump state
- 	bool pump_on;
- 	float pump_power;
- 	
+ 	bool pump_on = false;
+ 	float pump_power = 0.0f;
+
  	//Tank/water
-	bool tank_available = true;  
- 	float water_level;
- 	float max_water_level;
- 	
+	bool tank_available = true;
+ 	float water_level = 0.0f;
+ 	float max_water_level = 0.0f;
+
  	//Flow
- 	float flow_rate;
- 	float pressure;
- 	
+ 	float flow_rate = 0.0f;
+ 	float pressure = 0.0f;
+
 	//Time
-	float pump_run_time;
-	
+	float pump_run_time = 0.0f;
+
 	//Control
-	bool auto_control;
-	float threshold_low;
-	float threshold_high;
-};
-
-
-struct device_properties
-{
-	std::string device_name;
-	float max_flow_rate;
-	float max_pressure;
-	float power;
+	bool auto_control = false;
+	float threshold_low = 0.0f;
+	float threshold_high = 0.0f;
 };
 
 #endif

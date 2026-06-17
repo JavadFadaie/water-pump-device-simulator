@@ -28,9 +28,9 @@ link_directories(${LIBMODBUS_LIBRARY_DIRS})
 # Specify the source files
 set(SOURCES
     main.cpp
-    simulation_kernel/grundfos_pump_register.cpp
-    simulation_kernel/wilo_pump_register.cpp
-    modbus_server.cpp
+    simulation_kernel/grundfos_pump.cpp
+    simulation_kernel/wilo_pump.cpp
+    modbus/modbus_server.cpp
 )
 
 # Specify the header files (for IDEs to recognize them)
@@ -40,11 +40,12 @@ set(HEADERS
     include/driver_registry.hpp
     include/pump_factory.hpp
     include/web_server.hpp
-    include/modbus_types.hpp
-    include/protocol_writer.hpp
-    include/modbus_core.hpp
-    include/channel_device.hpp
-    include/modbus_server.hpp
+    include/model_info.hpp
+    modbus/modbus_types.hpp
+    modbus/protocol_writer.hpp
+    modbus/modbus_core.hpp
+    modbus/channel_device.hpp
+    modbus/modbus_server.hpp
     simulation_kernel/grundfos_pump.hpp
     simulation_kernel/wilo_pump.hpp
 )
@@ -56,6 +57,7 @@ add_executable(pump_simulation ${SOURCES} ${HEADERS})
 target_include_directories(pump_simulation PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/simulation_kernel
+    ${CMAKE_SOURCE_DIR}/modbus
 )
 
 # Find and link the threading library

@@ -3,52 +3,79 @@
 
 #include <map>
 #include <string>
-#include <functional>
 #include <memory>
 #include <vector>
 #include <utility>
+#include "model_info.hpp"
 
 class driver_base;
 
-struct driver_entry
+struct driver_descriptor
 {
-    int id;
-    std::string name;
-    std::function<std::unique_ptr<driver_base>()> factory_fn;
+    const char*                            name;
+    DriverId                               id;
+    void                                 (*add_model)(std::vector<ModelInfo>&);
+    std::unique_ptr<driver_base>         (*new_instance)();
+    void                                 (*add_to_test)();
 };
 
 class driver_registry
 {
   public:
+    struct register_t
+    {
+        explicit register_t(driver_descriptor desc)
+        {
+            driver_registry::instance().register_driver(std::move(desc));
+        }
+    };
+
     static driver_registry& instance()
     {
         static driver_registry reg;
         return reg;
     }
 
-    bool register_driver(int id, const std::string& name,
-                         std::function<std::unique_ptr<driver_base>()> fn)
+    void register_driver(driver_descriptor desc)
     {
-        drivers_[id] = {id, name, std::move(fn)};
-        return true;
+        int id_int = static_cast<int>(desc.id);
+        descriptors_[id_int] = std::move(desc);
     }
 
     std::unique_ptr<driver_base> create_driver(int id) const
     {
-        auto it = drivers_.find(id);
-        if (it != drivers_.end())
+        auto it = descriptors_.find(id);
+        if (it != descriptors_.end() && it->second.new_instance)
         {
-            return it->second.factory_fn();
+            return it->second.new_instance();
         }
         return nullptr;
+    }
+
+    std::vector<ModelInfo> get_models(int id) const
+    {
+        auto it = descriptors_.find(id);
+        if (it != descriptors_.end() && it->second.add_model)
+        {
+            std::vector<ModelInfo> models;
+            it->second.add_model(models);
+            return models;
+        }
+        return {};
+    }
+
+    const driver_descriptor* find_descriptor(int id) const
+    {
+        auto it = descriptors_.find(id);
+        return (it != descriptors_.end()) ? &it->second : nullptr;
     }
 
     std::vector<std::pair<int, std::string>> list_drivers() const
     {
         std::vector<std::pair<int, std::string>> result;
-        for (const auto& [id, entry] : drivers_)
+        for (const auto& [id, desc] : descriptors_)
         {
-            result.emplace_back(id, entry.name);
+            result.emplace_back(id, desc.name);
         }
         return result;
     }
@@ -58,19 +85,7 @@ class driver_registry
     driver_registry(const driver_registry&) = delete;
     driver_registry& operator=(const driver_registry&) = delete;
 
-    std::map<int, driver_entry> drivers_;
+    std::map<int, driver_descriptor> descriptors_;
 };
-
-#define REGISTER_PUMP_DRIVER(id, name, ClassName)                          \
-    namespace {                                                            \
-        const bool ClassName##_registered = []() {                         \
-            driver_registry::instance().register_driver(                   \
-                id, name,                                                  \
-                []() -> std::unique_ptr<driver_base> {                     \
-                    return std::make_unique<ClassName>();                   \
-                });                                                        \
-            return true;                                                   \
-        }();                                                               \
-    }
 
 #endif

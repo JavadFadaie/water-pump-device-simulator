@@ -16,26 +16,8 @@ ModbusTcp::~ModbusTcp()
     stop();
 }
 
-void ModbusTcp::initModbusRegisters()
-{
-    mModbusCore->addRegisterBlock(RegisterType::InputRegister, REG_FLOW_RATE, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::InputRegister, REG_PRESSURE, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::InputRegister, REG_PUMP_POWER, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::InputRegister, REG_WATER_LEVEL, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::InputRegister, REG_RUN_TIME, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::InputRegister, REG_PUMP_ON, AccessType::ReadAccess, 1);
-
-    mModbusCore->addRegisterBlock(RegisterType::HoldingRegister, REG_FLOW_RATE, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::HoldingRegister, REG_PRESSURE, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::HoldingRegister, REG_PUMP_POWER, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::HoldingRegister, REG_WATER_LEVEL, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::HoldingRegister, REG_RUN_TIME, AccessType::ReadAccess, SENSOR_DATA_SIZE);
-    mModbusCore->addRegisterBlock(RegisterType::HoldingRegister, REG_PUMP_ON, AccessType::ReadAccess, 1);
-}
-
 void ModbusTcp::start()
 {
-    initModbusRegisters();
     running_ = true;
     server_thread_ = std::thread(&ModbusTcp::serverLoop, this);
 }
@@ -51,8 +33,8 @@ void ModbusTcp::stop()
 
 void ModbusTcp::serverLoop()
 {
-    constexpr int HOLDING_REG_COUNT = 214;
-    constexpr int INPUT_REG_COUNT = 112;
+    constexpr int HOLDING_REG_COUNT = 512;
+    constexpr int INPUT_REG_COUNT = 512;
 
     modbus_t* ctx = modbus_new_tcp(ip_.c_str(), port_);
     if (!ctx)
@@ -130,10 +112,16 @@ void ModbusTcp::serverLoop()
     modbus_free(ctx);
 }
 
-// --- ModbusRtu (stub) ---
+// --- ModbusRtu ---
 
 ModbusRtu::ModbusRtu(uint8_t slaveId, const std::string& device, int baud)
     : ModbusServer(slaveId), device_(device), baud_(baud)
+{
+}
+
+ModbusRtu::ModbusRtu(uint8_t slaveId, std::shared_ptr<ModbusCore> core,
+                     const std::string& device, int baud)
+    : ModbusServer(slaveId, core), device_(device), baud_(baud)
 {
 }
 
@@ -144,9 +132,97 @@ ModbusRtu::~ModbusRtu()
 
 void ModbusRtu::start()
 {
-    std::cout << "ModbusRtu: RTU transport not yet implemented" << std::endl;
+    running_ = true;
+    server_thread_ = std::thread(&ModbusRtu::serverLoop, this);
 }
 
 void ModbusRtu::stop()
 {
+    running_ = false;
+    if (server_thread_.joinable())
+    {
+        server_thread_.join();
+    }
+}
+
+void ModbusRtu::serverLoop()
+{
+    constexpr int HOLDING_REG_COUNT = 512;
+    constexpr int INPUT_REG_COUNT = 512;
+
+    modbus_t* ctx = modbus_new_rtu(device_.c_str(), baud_, 'N', 8, 1);
+    if (!ctx)
+    {
+        std::cerr << "Failed to create Modbus RTU context for " << device_ << std::endl;
+        return;
+    }
+
+    modbus_set_slave(ctx, mSlaveId[0]);
+
+    if (modbus_connect(ctx) == -1)
+    {
+        std::cerr << "Failed to open serial port " << device_ << ": " << modbus_strerror(errno) << std::endl;
+        modbus_free(ctx);
+        return;
+    }
+
+    modbus_mapping_t* mb_mapping = modbus_mapping_new(0, 0, HOLDING_REG_COUNT, INPUT_REG_COUNT);
+    if (!mb_mapping)
+    {
+        std::cerr << "Failed to allocate Modbus mapping for RTU" << std::endl;
+        modbus_close(ctx);
+        modbus_free(ctx);
+        return;
+    }
+
+    int fd = modbus_get_socket(ctx);
+    std::cout << "Modbus RTU server started on " << device_ << " at " << baud_ << " baud (slave ID " << (int)mSlaveId[0] << ")" << std::endl;
+
+    uint8_t query[MODBUS_RTU_MAX_ADU_LENGTH];
+
+    while (running_)
+    {
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(fd, &rfds);
+
+        struct timeval tv;
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
+
+        int rc = select(fd + 1, &rfds, nullptr, nullptr, &tv);
+        if (rc < 0)
+        {
+            break;
+        }
+        if (rc == 0)
+        {
+            continue;
+        }
+
+        rc = modbus_receive(ctx, query);
+        if (rc > 0)
+        {
+            mModbusCore->syncToMapping(
+                mb_mapping->tab_registers, HOLDING_REG_COUNT,
+                mb_mapping->tab_input_registers, INPUT_REG_COUNT);
+
+            modbus_reply(ctx, query, rc, mb_mapping);
+        }
+        else if (rc == -1)
+        {
+            if (errno != ETIMEDOUT)
+            {
+                std::cerr << "Modbus RTU receive error on " << device_ << ": "
+                          << modbus_strerror(errno) << std::endl;
+                modbus_flush(ctx);
+            }
+        }
+    }
+
+    modbus_close(ctx);
+    modbus_mapping_free(mb_mapping);
+    modbus_free(ctx);
+
+    std::cout << "Modbus RTU server stopped on " << device_ << std::endl;
 }

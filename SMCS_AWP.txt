@@ -56,3 +56,103 @@ ________________________________________________________________
 
         2. we need a function that class the driver_init_info function in each class, and then provide a list of all the driver
 
+
+================================================================
+CURRENT STATE OF IMPLEMENTATION — 31.05.2026 (updated)
+================================================================
+
+The SMCS_AWP water pump device simulator is a fully functional C++17 application
+that simulates industrial water pump behavior and exposes simulated data through
+two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP server.
+
+--- WHAT THE SIMULATOR CAN DO ---
+
+1. PUMP SIMULATION
+   - Simulates pump operation for two manufacturers: Grundfos (2 models) and Wilo (2 models)
+   - Generates 6 real-time sensor values every 1 second:
+       * Flow rate (L/min) — based on model max + random noise
+       * Pressure (bar) — based on model max + random noise
+       * Pump power (W) — based on model max + random noise
+       * Water level (L) — accumulated value (flow_rate / 60 per tick)
+       * Run time (seconds) — increments each tick
+       * Pump on/off status (boolean)
+   - Each pump model defines max_flow, max_pressure, power, device type,
+     and communication protocol support (Ethernet/RS485, Modbus TCP/RTU)
+
+2. WEB DASHBOARD (HTTP server on port 8085)
+   - Single-page web UI with dark theme
+   - REST API endpoints:
+       * GET  /api/drivers              — list all registered pump drivers
+       * GET  /api/drivers/{id}/models  — list models with comm protocol info
+       * POST /api/simulation/start     — start simulation with selected driver + model
+       * POST /api/simulation/stop      — stop the running simulation
+       * GET  /api/simulation/status    — live sensor data (polled every 1s)
+   - Dashboard displays: driver/model selection, model specs, 5 live sensor cards
+     with animated gauge bars, activity log panel
+
+3. MODBUS TCP SERVER (port 1502, slave ID 1)
+   - Full Modbus TCP implementation using libmodbus
+   - Each driver owns its own ModbusTcp instance (created in driver constructor)
+   - start_simulation() starts both the sim thread AND the Modbus server
+   - stop_simulation() stops both — port 1502 is released before a new driver binds
+   - Simulation values written to both Input Registers and Holding Registers
+   - Driver-specific register maps (IEEE 754 float, 2 registers each):
+
+     Grundfos registers:
+       * 100-101: Flow Rate
+       * 102-103: Pressure
+       * 104-105: Pump Power
+       * 106-107: Water Level
+       * 108-109: Run Time
+       * 110:     Pump On (single register, boolean)
+
+     Wilo registers:
+       * 200-201: Flow Rate
+       * 202-203: Pressure
+       * 204-205: Pump Power
+       * 206-207: Water Level
+       * 208-209: Run Time
+       * 210:     Pump On (single register, boolean)
+
+   - Thread-safe register access via mutex
+   - Non-blocking client handling with select()
+
+4. DRIVER/PLUGIN ARCHITECTURE
+   - Abstract base class (driver_base) with pure virtual methods
+   - Self-registering driver system via static volatile driver_registry::register_t
+     with driver_descriptor struct (function pointers: add_model, new_instance, add_to_test)
+   - Singleton driver_registry with factory pattern
+   - ModelInfo struct with communication protocol fields:
+     DeviceType, SupportEth, SupportRS485, EthProtocol, SerialProtocol
+   - Each driver creates its own ModbusTcp and channel_device in its constructor
+   - Header files contain declarations only; .cpp files contain all implementations
+   - Adding a new pump manufacturer requires:
+       a) Create header (.hpp) with class declaration inheriting driver_base
+       b) Create .cpp with register enum, static registration, model list, all implementations
+       c) Add the .cpp to CMakeLists.txt
+   - No changes needed to main.cpp, web_server, or any other file
+
+5. MODBUS LAYERED ARCHITECTURE
+   - ProtocolWriter (abstract template) — protocol-agnostic write interface
+   - ModbusCore (register storage) — implements ProtocolWriter, manages register maps
+   - channel_device (named-channel adapter) — maps human-readable names to register addresses
+   - ModbusServer / ModbusTcp / ModbusRtu — transport layer
+   - Each driver owns the full Modbus stack (ModbusTcp → ModbusCore → channel_device)
+
+--- AVAILABLE PUMP MODELS ---
+
+   Grundfos (Driver ID 1, registers at 100+):
+     - Grundfos CRE 20: 20 L/min, 2 bar, 500W (Eth: Modbus TCP)
+     - Grundfos CRE 30: 30 L/min, 3 bar, 600W (Eth: Modbus TCP, RS485: Modbus RTU)
+
+   Wilo (Driver ID 2, registers at 200+):
+     - Stratos MAXO 50: 50 L/min, 2 bar, 500W (Eth: Modbus TCP, RS485: Modbus RTU)
+     - Stratos MAXO 60: 60 L/min, 3 bar, 600W (Eth: Modbus TCP, RS485: Modbus RTU)
+
+--- NOT YET IMPLEMENTED ---
+
+   - Modbus RTU transport (declared but stub only)
+   - Physical pump curve modeling (current simulation uses max + random noise)
+   - auto_control / threshold_low / threshold_high fields (defined in pumpProto struct but unused)
+   - SLCore register reading integration
+

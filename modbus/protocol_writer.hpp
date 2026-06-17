@@ -2,6 +2,7 @@
 #define PROTOCOL_WRITER_HPP
 
 #include <cstdint>
+#include "modbus_types.hpp"
 
 template<typename RegType, typename AddrType>
 class ProtocolWriter

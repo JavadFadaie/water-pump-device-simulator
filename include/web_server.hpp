@@ -5,7 +5,6 @@
 #include <nlohmann/json.hpp>
 #include "driver_registry.hpp"
 #include "driver_base.hpp"
-#include "modbus_core.hpp"
 #include <mutex>
 #include <memory>
 #include <iostream>
@@ -17,11 +16,6 @@
 class web_server
 {
   public:
-    void setModbusCore(std::shared_ptr<ModbusCore> core)
-    {
-        modbus_core_ = core;
-    }
-
     void start(int port, const std::string& static_dir)
     {
         setup_routes(static_dir);
@@ -34,7 +28,6 @@ class web_server
     std::unique_ptr<driver_base> active_driver_;
     int active_model_id_ = -1;
     std::mutex sim_mutex_;
-    std::shared_ptr<ModbusCore> modbus_core_;
 
     void setup_routes(const std::string& static_dir)
     {
@@ -90,26 +83,33 @@ class web_server
 
     void handle_get_models(int driver_id, httplib::Response& res)
     {
-        auto drv = driver_registry::instance().create_driver(driver_id);
-        if (!drv)
+        auto models = driver_registry::instance().get_models(driver_id);
+        if (models.empty())
         {
-            nlohmann::json err = {{"error", "Unknown driver ID"}};
-            res.status = 404;
-            res.set_content(err.dump(), "application/json");
-            return;
+            auto desc = driver_registry::instance().find_descriptor(driver_id);
+            if (!desc)
+            {
+                nlohmann::json err = {{"error", "Unknown driver ID"}};
+                res.status = 404;
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
         }
 
-        drv->set_devices();
-        const auto& devices = drv->get_device_list();
         nlohmann::json arr = nlohmann::json::array();
-        for (int i = 0; i < static_cast<int>(devices.size()); ++i)
+        for (const auto& m : models)
         {
             arr.push_back({
-                {"id", i},
-                {"name", devices[i].device_name},
-                {"max_flow_rate", devices[i].max_flow_rate},
-                {"max_pressure", devices[i].max_pressure},
-                {"power", devices[i].power}
+                {"id", m.deviceId},
+                {"name", m.Name},
+                {"max_flow_rate", m.max_flow_rate},
+                {"max_pressure", m.max_pressure},
+                {"power", m.power},
+                {"device_type", static_cast<int>(m.deviceType)},
+                {"support_eth", m.SupportEth},
+                {"support_rs485", m.SupportRS485},
+                {"eth_protocol", static_cast<int>(m.EthProtocol)},
+                {"serial_protocol", static_cast<int>(m.SerialProtocol)}
             });
         }
         res.set_content(arr.dump(), "application/json");
@@ -140,6 +140,11 @@ class web_server
 
         int driver_id = body["driver_id"].get<int>();
         int model_id = body["model_id"].get<int>();
+        std::string iface = "ethernet";
+        if (body.contains("interface"))
+        {
+            iface = body["interface"].get<std::string>();
+        }
 
         std::lock_guard<std::mutex> lock(sim_mutex_);
 
@@ -159,11 +164,6 @@ class web_server
 
         active_driver_->set_devices();
 
-        if (modbus_core_)
-        {
-            active_driver_->setModbusCore(modbus_core_);
-        }
-
         if (!active_driver_->select_device_by_index(model_id))
         {
             active_driver_.reset();
@@ -171,6 +171,27 @@ class web_server
             res.status = 400;
             res.set_content(err.dump(), "application/json");
             return;
+        }
+
+        if (iface == "rs485")
+        {
+            auto models = driver_registry::instance().get_models(driver_id);
+            if (model_id >= 0 && model_id < static_cast<int>(models.size()) && models[model_id].SupportRS485)
+            {
+                std::string device = "/dev/ttyUSB0";
+                int baud = 9600;
+                if (body.contains("device")) device = body["device"].get<std::string>();
+                if (body.contains("baud"))   baud   = body["baud"].get<int>();
+                active_driver_->configureRtu(device, baud);
+            }
+            else
+            {
+                active_driver_.reset();
+                nlohmann::json err = {{"error", "Selected model does not support RS485"}};
+                res.status = 400;
+                res.set_content(err.dump(), "application/json");
+                return;
+            }
         }
 
         active_model_id_ = model_id;

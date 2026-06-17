@@ -19,6 +19,11 @@ class pump_factory
         return driver_registry::instance().list_drivers();
     }
 
+    std::vector<ModelInfo> get_models_for_driver(int driver_id) const
+    {
+        return driver_registry::instance().get_models(driver_id);
+    }
+
   private:
     std::unique_ptr<driver_base> selected_pump_driver;
 };

@@ -28,12 +28,4 @@ struct ModbusRegister
     {}
 };
 
-constexpr uint16_t REG_FLOW_RATE   = 100;
-constexpr uint16_t REG_PRESSURE    = 102;
-constexpr uint16_t REG_PUMP_POWER  = 104;
-constexpr uint16_t REG_WATER_LEVEL = 106;
-constexpr uint16_t REG_RUN_TIME    = 108;
-constexpr uint16_t REG_PUMP_ON     = 110;
-constexpr uint16_t SENSOR_DATA_SIZE = 2;
-
 #endif

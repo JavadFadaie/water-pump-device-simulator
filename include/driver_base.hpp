@@ -10,14 +10,14 @@
 #include <atomic>
 #include <mutex>
 #include "simulation_variable.hpp"
-#include "modbus_core.hpp"
-#include "channel_device.hpp"
+#include "model_info.hpp"
+#include "modbus_server.hpp"
 
 class driver_base{
 
   public:
 	driver_base(pumpProto & sim_value)
-	: selected_device(std::make_unique<device_properties>())
+	: selected_device(std::make_unique<ModelInfo>())
 	, pump(sim_value)
 	, running{false}
 	, simulation_duration{0}
@@ -30,23 +30,16 @@ class driver_base{
 
 	virtual void set_devices() = 0;
 
-	void setModbusCore(std::shared_ptr<ModbusCore> core)
-	{
-		modbus_core_ = core;
-		channel_dev_ = std::make_unique<channel_device<RegisterType, uint16_t>>(*core);
-		initChannels();
-	}
-
 	virtual void device_selection(std::string & device_name)
 	{
-		auto it = std::find_if( device_list.begin(), device_list.end(), [&device_name](const device_properties & device)
+		auto it = std::find_if( device_list.begin(), device_list.end(), [&device_name](const ModelInfo & device)
 					{
-						return device.device_name == device_name;
+						return device.Name == device_name;
 					});
 
     	if ( it != device_list.end() )
 		{
-        	std::cout << "Device found: " << it->device_name << std::endl;
+        	std::cout << "Device found: " << it->Name << std::endl;
 			*selected_device = *it;
     	}
 		else
@@ -70,7 +63,7 @@ class driver_base{
 	{
 		for( auto i : device_list)
 		{
-			std::cout<< i.device_name << "  " << i.max_flow_rate << std::endl;
+			std::cout<< i.Name << "  " << i.max_flow_rate << std::endl;
 		}
 	}
 
@@ -103,6 +96,10 @@ class driver_base{
 	{
         if (!running)
 		{
+			if (mModbus)
+			{
+				mModbus->start();
+			}
             simulation_thread = std::thread(&driver_base::simulate_driver_values, this);
         }
     }
@@ -114,7 +111,19 @@ class driver_base{
 		{
             simulation_thread.join();
         }
+		if (mModbus)
+		{
+			mModbus->stop();
+		}
     }
+
+	void configureRtu(const std::string& device = "/dev/ttyUSB0", int baud = 9600)
+	{
+		if (!mModbus) return;
+		auto core = mModbus->mModbusCore;
+		uint8_t slaveId = mModbus->getSlaveId();
+		mModbus = std::make_unique<ModbusRtu>(slaveId, core, device, baud);
+	}
 
 	void set_simulation_status(bool status)
 	{
@@ -168,7 +177,7 @@ class driver_base{
 		return pump;
 	}
 
-	const std::vector<device_properties>& get_device_list() const
+	const std::vector<ModelInfo>& get_device_list() const
 	{
 		return device_list;
 	}
@@ -184,49 +193,19 @@ class driver_base{
 	}
 
   protected:
-	std::vector<device_properties> device_list;
+	std::vector<ModelInfo> device_list;
 	pumpProto & pump;
 	std::atomic<bool> running;
-	std::unique_ptr<device_properties>  selected_device;
+	std::unique_ptr<ModelInfo>  selected_device;
 	std::thread simulation_thread;
 	int simulation_duration;
 	std::mutex pump_mutex;
 
-	std::shared_ptr<ModbusCore> modbus_core_;
-	std::unique_ptr<channel_device<RegisterType, uint16_t>> channel_dev_;
+	std::unique_ptr<ModbusServer> mModbus;
 
-	virtual void initChannels()
-	{
-		if (!channel_dev_) return;
-		channel_dev_->addChannel("CH_FLOW_RATE",   RegisterType::InputRegister, REG_FLOW_RATE);
-		channel_dev_->addChannel("CH_PRESSURE",    RegisterType::InputRegister, REG_PRESSURE);
-		channel_dev_->addChannel("CH_PUMP_POWER",  RegisterType::InputRegister, REG_PUMP_POWER);
-		channel_dev_->addChannel("CH_WATER_LEVEL", RegisterType::InputRegister, REG_WATER_LEVEL);
-		channel_dev_->addChannel("CH_RUN_TIME",    RegisterType::InputRegister, REG_RUN_TIME);
-		channel_dev_->addChannel("CH_PUMP_ON",     RegisterType::InputRegister, REG_PUMP_ON);
-	}
+	virtual void initChannels() = 0;
 
-	void writeSimulationToRegisters()
-	{
-		if (!channel_dev_) return;
-
-		channel_dev_->setRegisterValueFloat("CH_FLOW_RATE",   pump.flow_rate,     1.0f);
-		channel_dev_->setRegisterValueFloat("CH_PRESSURE",    pump.pressure,      1.0f);
-		channel_dev_->setRegisterValueFloat("CH_PUMP_POWER",  pump.pump_power,    1.0f);
-		channel_dev_->setRegisterValueFloat("CH_WATER_LEVEL", pump.water_level,   1.0f);
-		channel_dev_->setRegisterValueFloat("CH_RUN_TIME",    pump.pump_run_time, 1.0f);
-		channel_dev_->setRegisterValue("CH_PUMP_ON", pump.pump_on ? 1 : 0);
-
-		if (modbus_core_)
-		{
-			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_FLOW_RATE,   pump.flow_rate);
-			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_PRESSURE,    pump.pressure);
-			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_PUMP_POWER,  pump.pump_power);
-			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_WATER_LEVEL, pump.water_level);
-			modbus_core_->setRegisterValueFloat(RegisterType::HoldingRegister, REG_RUN_TIME,    pump.pump_run_time);
-			modbus_core_->setRegisterValue(RegisterType::HoldingRegister, REG_PUMP_ON, pump.pump_on ? 1 : 0);
-		}
-	}
+	virtual void writeSimulationToRegisters() = 0;
 };
 
 

@@ -19,15 +19,24 @@ Example we follow:
    - `GET /api/simulation/status`
    - `POST /api/simulation/stop`
 
-## 2) How driver IDs become C++ classes (once)
+## 2) How driver IDs become C++ classes (at static initialization, before main)
 
-At startup, these lines register drivers:
-- `REGISTER_PUMP_DRIVER(1, "Grundfos", grundfos_pump)`
-- `REGISTER_PUMP_DRIVER(2, "Wilo", wilo_pump)`
+Each driver `.cpp` file has a `static volatile` registration line:
 
-So later:
-- `create_driver(1)` returns `grundfos_pump`
-- `create_driver(2)` returns `wilo_pump`
+```cpp
+// in wilo_pump.cpp
+static volatile driver_registry::register_t wilo_reghelper({
+    .name         = "Wilo",
+    .id           = DriverId::WILO_PUMP,
+    .add_model    = wilo_pump::add_model,
+    .new_instance = wilo_pump::new_instance,
+    .add_to_test  = nullptr
+});
+```
+
+The `register_t` constructor calls `driver_registry::instance().register_driver(desc)` which stores the `driver_descriptor` struct. So later:
+- `create_driver(1)` returns a new `grundfos_pump`
+- `create_driver(2)` returns a new `wilo_pump`
 
 ## 3) Real user flow with exact function calls
 
@@ -58,10 +67,8 @@ Frontend calls:
 
 Backend runs:
 1. `web_server::handle_get_models(driver_id=2)`
-2. `drv = driver_registry::instance().create_driver(2)` -> creates `wilo_pump`
-3. `drv->set_devices()` -> fills Wilo model list
-4. `drv->get_device_list()` -> returns models
-5. Backend returns model JSON array
+2. `driver_registry::instance().get_models(2)` — calls Wilo's `add_model()` function pointer
+3. Returns model JSON array with specs and communication protocol info
 
 Frontend fills the Model dropdown with Wilo models.
 
@@ -87,24 +94,28 @@ Backend runs `web_server::handle_start()`:
 1. Parse JSON body
 2. Validate `driver_id` and `model_id`
 3. Lock `sim_mutex_`
-4. If old simulation is running -> `active_driver_->stop_simulation()`
-5. `active_driver_ = create_driver(2)` -> `wilo_pump`
-6. `active_driver_->set_devices()`
-7. `active_driver_->select_device_by_index(1)` -> selects `Stratos MAXO 60`
+4. If old simulation is running → `active_driver_->stop_simulation()` (stops sim thread + Modbus TCP server, releases port 1502)
+5. `active_driver_ = driver_registry::instance().create_driver(2)` → creates new `wilo_pump`
+   - Constructor creates `ModbusTcp(1)`, adds register blocks (addresses 200–210), creates `channel_device`, calls `initChannels()`
+6. `active_driver_->set_devices()` → fills Wilo model list
+7. `active_driver_->select_device_by_index(1)` → selects `Stratos MAXO 60`
 8. `active_model_id_ = 1`
-9. `active_driver_->start_simulation()`
+9. `active_driver_->start_simulation()`:
+   - Starts `mModbus->start()` → Modbus TCP server on port 1502
+   - Creates simulation thread
 10. Return `{ "status": "ok" }`
 
 ## 4) What happens after `start_simulation()`
 
-`driver_base::start_simulation()` creates a thread:
-- `std::thread(&driver_base::simulate_driver_values, this)`
+`driver_base::start_simulation()`:
+1. Calls `mModbus->start()` → binds to port 1502, starts accepting Modbus clients
+2. Creates a thread: `std::thread(&driver_base::simulate_driver_values, this)`
 
 Thread function `simulate_driver_values()` loop:
 1. `set_simulation_status(true)`
 2. While running:
    - `simulate_values()`
-   - `update_driver_value()`
+   - `update_driver_value()` → `writeSimulationToRegisters()`
    - sleep 1 second
 
 ### Inside `simulate_values()` each second
@@ -118,6 +129,13 @@ Thread function `simulate_driver_values()` loop:
    - `pump.water_level += pump.flow_rate / 60`
 
 These values are stored in the active driver's `pumpProto` data.
+
+### Inside `writeSimulationToRegisters()` each second
+Writes the `pumpProto` values into Modbus registers via two paths:
+- **Input Registers** via `pump_channels->setRegisterValueFloat(...)` (named channels)
+- **Holding Registers** via `mModbus->mModbusCore->setRegisterValueFloat(...)` (direct)
+
+For Wilo, values go to addresses 200–210. For Grundfos, 100–110.
 
 ## 5) How generated backend data reaches frontend
 
@@ -139,40 +157,61 @@ Frontend `pollStatus()` then:
 2. Calls `updateDashboard(data)`
 3. `updateDashboard()` writes values to cards and gauge widths
 
-So the projection path is:
-- UI -> backend: HTTP requests (`/start` with chosen IDs)
-- Backend -> UI: periodic HTTP status responses (`/status` every second)
+## 6) How Modbus clients read register data
 
-## 6) Mini trace (one single second after Start)
+While the simulation is running, external Modbus clients (pymodbus, SCADA) can connect to `localhost:1502`:
+
+- **FC 04 (Read Input Registers)**: Read sensor values
+- **FC 03 (Read Holding Registers)**: Read sensor values (mirrored)
+
+Example with pymodbus (for Wilo, registers at 200):
+```python
+from pymodbus.client import ModbusTcpClient
+import struct
+
+client = ModbusTcpClient('127.0.0.1', port=1502)
+client.connect()
+
+result = client.read_input_registers(200, 2, slave=1)
+flow_rate = struct.unpack('>f', struct.pack('>HH', result.registers[0], result.registers[1]))[0]
+print(f"Flow Rate: {flow_rate:.2f} L/min")
+```
+
+## 7) Mini trace (one single second after Start)
 
 1. Simulation thread executes `simulate_values()` and updates `pump.flow_rate` (example: 61.8)
-2. Frontend timer calls `pollStatus()`
-3. Browser requests `GET /api/simulation/status`
-4. Backend `handle_status()` reads current `pumpProto`
-5. Backend returns JSON (example):
+2. Simulation thread executes `writeSimulationToRegisters()` → writes 61.8 to Modbus register 200
+3. Frontend timer calls `pollStatus()`
+4. Browser requests `GET /api/simulation/status`
+5. Backend `handle_status()` reads current `pumpProto`
+6. Backend returns JSON (example):
    - `{ "running": true, "flow_rate": 61.8, "pressure": 3.4, ... }`
-6. Frontend `updateDashboard(data)` sets:
+7. Frontend `updateDashboard(data)` sets:
    - Flow card text to `61.80`
    - Pressure card text to `3.40`
    - Gauge bars width based on model max values
+8. Meanwhile, a Modbus client reading register 200 gets 61.8 as IEEE 754 float
 
 This repeats every second while simulation is running.
 
-## 7) Stop flow
+## 8) Stop flow
 
 1. User clicks `Stop`
 2. Frontend sends `POST /api/simulation/stop`
 3. Backend `handle_stop()` calls `active_driver_->stop_simulation()`
-4. `stop_simulation()` sets running false and joins thread
+4. `stop_simulation()` sets running false, joins thread, calls `mModbus->stop()` (releases port 1502)
 5. Next status polls show `running = false`, UI switches to Stopped
 
-## 8) Short answer to your question
+## 9) Short answer
 
 When user selects one driver and one model and clicks Start, the key backend call is:
-- `web_server::handle_start()` -> `create_driver(driver_id)` -> `set_devices()` -> `select_device_by_index(model_id)` -> `start_simulation()`
+- `web_server::handle_start()` → `driver_registry::create_driver(driver_id)` → `set_devices()` → `select_device_by_index(model_id)` → `start_simulation()` (starts Modbus + sim thread)
 
 When data is generated, the key projection back to frontend is:
-- `driver_base::simulate_values()` updates `pumpProto`
+- `simulate_values()` updates `pumpProto`
+- `writeSimulationToRegisters()` writes values to Modbus registers
 - frontend `pollStatus()` calls `/api/simulation/status`
 - backend `handle_status()` returns `pumpProto` JSON
-- frontend `updateDashboard(data)` renders it on screen.
+- frontend `updateDashboard(data)` renders it on screen
+
+External Modbus clients can read the same data via `localhost:1502` using FC 03 or FC 04.

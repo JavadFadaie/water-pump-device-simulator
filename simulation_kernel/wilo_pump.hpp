@@ -2,32 +2,26 @@
 #define WILO_PUMP_HPP
 
 #include "driver_base.hpp"
+#include "channel_device.hpp"
 
-class wilo_pump: public driver_base
+class wilo_pump : public driver_base
 {
   public:
-    static constexpr int DRIVER_ID = 2;
+	explicit wilo_pump();
+	~wilo_pump() override;
 
-    wilo_pump()
-    :driver_base(wilo_simulation_pump)
-    {}
+	static void                          add_model(std::vector<ModelInfo>& models);
+	static std::unique_ptr<driver_base>  new_instance();
 
-    void set_devices() override
-    {
-        device_list =
-        {
-	          { .device_name = "Stratos MAXO 50", .max_flow_rate=50.0, .max_pressure = 2, .power = 500},
-		        { .device_name = "Stratos MAXO 60", .max_flow_rate=60.0, .max_pressure = 3, .power = 600}
-        };
-    }
-
-    void update_driver_value() override
-    {
-        writeSimulationToRegisters();
-    }
+	void set_devices() override;
+	void update_driver_value() override;
 
   private:
-    pumpProto wilo_simulation_pump;
+	void initChannels() override;
+	void writeSimulationToRegisters() override;
+
+	pumpProto wilo_simulation_pump;
+	std::unique_ptr<channel_device<RegisterType, uint16_t>> pump_channels;
 };
 
 #endif

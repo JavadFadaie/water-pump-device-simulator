@@ -17,10 +17,18 @@ public:
         mSlaveId.push_back(slaveId);
     }
 
+    ModbusServer(uint8_t slaveId, std::shared_ptr<ModbusCore> existingCore)
+    {
+        mModbusCore = existingCore;
+        mSlaveId.push_back(slaveId);
+    }
+
     virtual ~ModbusServer() = default;
 
     virtual void start() = 0;
     virtual void stop() = 0;
+
+    uint8_t getSlaveId() const { return mSlaveId.empty() ? 1 : mSlaveId[0]; }
 
     std::shared_ptr<ModbusCore> mModbusCore;
 
@@ -41,8 +49,6 @@ public:
     void start() override;
     void stop() override;
 
-    void initModbusRegisters();
-
 private:
     std::string ip_;
     int port_;
@@ -55,6 +61,9 @@ public:
     ModbusRtu(uint8_t slaveId = 1,
               const std::string& device = "/dev/ttyUSB0",
               int baud = 9600);
+    ModbusRtu(uint8_t slaveId, std::shared_ptr<ModbusCore> core,
+              const std::string& device = "/dev/ttyUSB0",
+              int baud = 9600);
     ~ModbusRtu() override;
 
     void start() override;
@@ -63,6 +72,7 @@ public:
 private:
     std::string device_;
     int baud_;
+    void serverLoop();
 };
 
 #endif
