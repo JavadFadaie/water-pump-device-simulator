@@ -79,3 +79,37 @@ add_custom_command(TARGET pump_simulation POST_BUILD
 
 # Set output directory for the executable
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# --- Unit Tests ---
+option(BUILD_TESTS "Build unit tests" ON)
+if(BUILD_TESTS)
+    FetchContent_Declare(googletest
+        URL https://github.com/google/googletest/releases/download/v1.15.2/googletest-1.15.2.tar.gz
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    enable_testing()
+
+    add_executable(pump_tests
+        tests/test_modbus_core.cpp
+        tests/test_channel_device.cpp
+        tests/test_driver_registry.cpp
+        tests/test_pump_drivers.cpp
+        simulation_kernel/grundfos_pump.cpp
+        simulation_kernel/wilo_pump.cpp
+        modbus/modbus_server.cpp
+    )
+    target_include_directories(pump_tests PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/simulation_kernel
+        ${CMAKE_SOURCE_DIR}/modbus
+    )
+    target_link_libraries(pump_tests PRIVATE
+        GTest::gtest_main
+        Threads::Threads
+        ${LIBMODBUS_LIBRARIES}
+    )
+    include(GoogleTest)
+    gtest_discover_tests(pump_tests)
+endif()
