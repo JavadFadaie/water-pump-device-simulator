@@ -1,8 +1,8 @@
-# AGENTS.md — Water Pump Monitor & Control System (Master)
+# AGENTS.md — WPCM_core (Water Pump Control & Monitor)
 
 ## Project Overview
 
-C++17 application that connects to a running **water-pump-device-simulator** instance and provides:
+C++17 application that connects to a running **simulator** instance and provides:
 
 - **Monitoring** — periodic polling of Modbus input registers (sensor values), in-memory history, CSV logging, threshold alarms
 - **Control** — sending control commands to the simulator via its REST API (start/stop pump) and writing setpoints to Modbus holding registers (flow rate target, on/off command)
@@ -20,7 +20,7 @@ Both transports use identical register maps and the same `ModbusReader`/`ModbusW
 
 ## Simulator Interface (external dependency)
 
-The water-pump-device-simulator must be running before this system starts.
+The **simulator** (`../simulator`) must be running before this system starts.
 
 | Interface | Connection | Purpose |
 |-----------|------------|---------|
@@ -105,7 +105,7 @@ main.cpp
 ## Directory Structure
 
 ```
-water-pump-monitor-control/
+WPCM_core/
 ├── main.cpp                        # Entry point: wires MonitorLoop + ControlClient
 ├── CMakeLists.txt                  # libmodbus (system), cpp-httplib (fetched), nlohmann/json (fetched)
 ├── AGENTS.md                       # This file — master orchestrator
@@ -153,11 +153,11 @@ water-pump-monitor-control/
 
 ```bash
 # Simulator must be running first
-cd ../water-pump-device-simulator
+cd ../simulator
 ./build/pump_simulation &
 
 # Then build and run this project
-cd ../water-pump-monitor-control
+cd ../WPCM_core
 mkdir -p build && cd build
 cmake .. && cmake --build .
 ./pump_monitor

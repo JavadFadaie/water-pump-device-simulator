@@ -1,4 +1,4 @@
-# AGENTS.md — modbus/
+#AGENTS.md — modbus/
 
 **Parent:** [../AGENTS.md](../AGENTS.md)
 
