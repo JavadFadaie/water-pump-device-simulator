@@ -1,0 +1,34 @@
+# Build artifacts
+build/
+*/build/
+*.o
+*.a
+*.so
+*.out
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+install_manifest.txt
+CTestTestfile.cmake
+_CPack_Packages/
+
+# Worktrees
+*.worktrees/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs (generated at runtime)
+logs/*.csv
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,14 @@
+{
+  "name": "modbus-bridge",
+  "version": "1.0.0",
+  "description": "Node.js bridge between Modbus TCP simulator and React UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0",
+    "modbus-serial": "^8.0.6"
+  }
+}
