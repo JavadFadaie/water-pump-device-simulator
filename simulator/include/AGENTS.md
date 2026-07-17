@@ -14,7 +14,6 @@ This folder contains the shared infrastructure that glues the whole application 
 | `simulation_variable.hpp` | `pumpProto` struct — all sensor fields (flow rate, pressure, power, water level, run time, control flags), zero-initialized |
 | `driver_base.hpp` | Abstract base class for all pump drivers; owns `mModbus`, simulation thread, atomic state |
 | `driver_registry.hpp` | Singleton registry; stores `driver_descriptor` map; provides `register_driver()`, `create_driver()`, `list_drivers()`, `get_models()` |
-| `pump_factory.hpp` | Thin facade over `driver_registry` — intended public API for driver creation |
 | `web_server.hpp` | Full HTTP server (cpp-httplib); all REST routes; manages one active `driver_base` instance |
 
 ---
@@ -88,6 +87,3 @@ See [../AGENTS.md](../AGENTS.md) for the full endpoint table.
 
 ---
 
-## Note on `pump_factory`
-
-`pump_factory.hpp` is a facade over `driver_registry` intended as the single public creation API. Currently `web_server.hpp` calls `driver_registry::instance()` directly. If isolation matters, route all driver creation through `pump_factory` instead.

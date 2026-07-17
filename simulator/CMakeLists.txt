@@ -38,7 +38,6 @@ set(HEADERS
     include/simulation_variable.hpp
     include/driver_base.hpp
     include/driver_registry.hpp
-    include/pump_factory.hpp
     include/web_server.hpp
     include/model_info.hpp
     modbus/modbus_types.hpp

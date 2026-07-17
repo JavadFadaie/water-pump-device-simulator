@@ -63,7 +63,6 @@ Each driver owns its entire Modbus stack. `start_simulation()` starts both the s
 │   ├── AGENTS.md
 │   ├── driver_base.hpp
 │   ├── driver_registry.hpp
-│   ├── pump_factory.hpp
 │   ├── web_server.hpp
 │   ├── model_info.hpp
 │   └── simulation_variable.hpp

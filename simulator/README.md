@@ -7,7 +7,7 @@ Industrial water pump device simulator written in C++17. Simulates pump sensor d
 - **Multi-driver support**: Grundfos (2 models) and Wilo (2 models), extensible to new manufacturers
 - **Real-time simulation**: Flow rate, pressure, pump power, water level, run time, pump on/off — updated every 1 second
 - **Web dashboard**: Dark-themed UI with driver/model selection, live sensor cards, animated gauges
-- **Modbus TCP**: Each driver owns its Modbus stack with driver-specific register addresses (IEEE 754 float encoding)
+- **Modbus TcCP**: Eah driver owns its Modbus stack with driver-specific register addresses (IEEE 754 float encoding)
 - **Self-registering drivers**: New drivers auto-discover — no changes to main, web server, or Modbus code
 
 ## Build

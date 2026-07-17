@@ -58,16 +58,16 @@ ________________________________________________________________
 
 
 ================================================================
-CURRENT STATE OF IMPLEMENTATION — 31.05.2026 (updated)
+CURRENT STATE OF IMPLEMENTATION — 26.06.2026 (updated)
 ================================================================
 
 The SMCS_AWP water pump device simulator is a fully functional C++17 application
 that simulates industrial water pump behavior and exposes simulated data through
-two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP server.
+two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP/RTU server.
 
---- WHAT THE SIMULATOR CAN DO ---
+--- WHAT IS DONE ---
 
-1. PUMP SIMULATION
+1. PUMP SIMULATION  [DONE]
    - Simulates pump operation for two manufacturers: Grundfos (2 models) and Wilo (2 models)
    - Generates 6 real-time sensor values every 1 second:
        * Flow rate (L/min) — based on model max + random noise
@@ -79,7 +79,7 @@ two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP se
    - Each pump model defines max_flow, max_pressure, power, device type,
      and communication protocol support (Ethernet/RS485, Modbus TCP/RTU)
 
-2. WEB DASHBOARD (HTTP server on port 8085)
+2. WEB DASHBOARD — HTTP server on port 8085  [DONE]
    - Single-page web UI with dark theme
    - REST API endpoints:
        * GET  /api/drivers              — list all registered pump drivers
@@ -90,12 +90,12 @@ two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP se
    - Dashboard displays: driver/model selection, model specs, 5 live sensor cards
      with animated gauge bars, activity log panel
 
-3. MODBUS TCP SERVER (port 1502, slave ID 1)
+3. MODBUS TCP SERVER — port 1502, slave ID 1  [DONE]
    - Full Modbus TCP implementation using libmodbus
    - Each driver owns its own ModbusTcp instance (created in driver constructor)
    - start_simulation() starts both the sim thread AND the Modbus server
    - stop_simulation() stops both — port 1502 is released before a new driver binds
-   - Simulation values written to both Input Registers and Holding Registers
+   - Simulation values written to Input Registers only (Holding Registers receive zeros)
    - Driver-specific register maps (IEEE 754 float, 2 registers each):
 
      Grundfos registers:
@@ -116,8 +116,16 @@ two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP se
 
    - Thread-safe register access via mutex
    - Non-blocking client handling with select()
+   - NOTE: only one Modbus TCP client can be served at a time (no concurrent client support)
 
-4. DRIVER/PLUGIN ARCHITECTURE
+4. MODBUS RTU SERVER — serial port  [DONE]
+   - Full RTU implementation in modbus/modbus_server.cpp (lines 117-228)
+   - libmodbus_new_rtu(), same select()-based non-blocking loop as TCP
+   - configureRtu(device, baud) hot-swaps TCP transport to RTU at runtime
+   - RS485 interface selection validated per-model in web_server handle_start()
+   - End-to-end test in test_rtu.py (socat virtual serial port + pymodbus)
+
+5. DRIVER / PLUGIN ARCHITECTURE  [DONE]
    - Abstract base class (driver_base) with pure virtual methods
    - Self-registering driver system via static volatile driver_registry::register_t
      with driver_descriptor struct (function pointers: add_model, new_instance, add_to_test)
@@ -132,12 +140,17 @@ two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP se
        c) Add the .cpp to CMakeLists.txt
    - No changes needed to main.cpp, web_server, or any other file
 
-5. MODBUS LAYERED ARCHITECTURE
+6. MODBUS LAYERED ARCHITECTURE  [DONE]
    - ProtocolWriter (abstract template) — protocol-agnostic write interface
-   - ModbusCore (register storage) — implements ProtocolWriter, manages register maps
+   - ModbusCore (register storage) — implements ProtocolWriter, IEEE 754 float encoding
    - channel_device (named-channel adapter) — maps human-readable names to register addresses
    - ModbusServer / ModbusTcp / ModbusRtu — transport layer
    - Each driver owns the full Modbus stack (ModbusTcp → ModbusCore → channel_device)
+
+7. UNIT TESTS + CI  [DONE]
+   - Google Test suite: test_modbus_core.cpp, test_channel_device.cpp,
+     test_driver_registry.cpp, test_pump_drivers.cpp (40+ tests total)
+   - GitHub Actions CI pipeline (.github/workflows/ci.yml) — Ubuntu, libmodbus, ctest
 
 --- AVAILABLE PUMP MODELS ---
 
@@ -151,8 +164,15 @@ two parallel communication interfaces: an HTTP web dashboard and a Modbus TCP se
 
 --- NOT YET IMPLEMENTED ---
 
-   - Modbus RTU transport (declared but stub only)
-   - Physical pump curve modeling (current simulation uses max + random noise)
-   - auto_control / threshold_low / threshold_high fields (defined in pumpProto struct but unused)
+   - Holding Register writes: drivers currently write only to Input Registers;
+     Modbus FC03 (Read Holding Registers) returns zeros — documented in
+     MODBUS_WORKFLOW.md "Path B" but not yet coded in grundfos_pump.cpp / wilo_pump.cpp
+   - Physical pump curve modeling: simulation uses max_value + random noise only;
+     no flow-vs-pressure interdependency, no efficiency curves
+   - auto_control / threshold_low / threshold_high / max_water_level fields:
+     defined in pumpProto struct (simulation_variable.hpp) but never read or written;
+     water level accumulates indefinitely with no ceiling check
+   - driver_descriptor::add_to_test: set to nullptr in both drivers; not exercised
    - SLCore register reading integration
+   - Concurrent Modbus TCP client support (currently single client only)
 
